@@ -1,0 +1,7 @@
+Algorithm,Enc Latency (us),Dec Latency (us),Total Latency (us),Throughput (pkts/s),Throughput (MB/s),Energy (uJ/pkt),Shannon Entropy (bits),Attack Mitigation (%)
+DNA-V2X (Proposed 4-Mer MTD),3.54 ± 2.13,9.32 ± 5.71,12.86 ± 7.62,"109,384",3.34,32.146 ± 19.059,7.96,100.0%
+ChaCha20-Poly1305 (Stream AEAD),2.88 ± 1.93,3.16 ± 8.36,6.04 ± 9.17,"262,481",8.01,15.103 ± 22.920,7.98,98.5%
+AES-128-GCM (NIST Standard),2.43 ± 2.67,3.03 ± 15.77,5.46 ± 16.22,"346,180",10.56,13.662 ± 40.562,7.98,98.5%
+Static DNA Substitution,3.38 ± 1.87,8.20 ± 29.99,11.58 ± 30.10,"135,652",4.14,28.948 ± 75.243,6.12,35.0%
+IEEE 1609.2 ECDSA (Vehicular PKI),60.36 ± 39.66,145.63 ± 105.15,205.98 ± 137.20,"6,895",0.21,514.961 ± 342.990,7.99,95.0%
+Plaintext (Zero-Security),0.20 ± 0.33,0.19 ± 0.44,0.39 ± 0.57,"3,874,982",118.26,0.986 ± 1.414,5.20,0.0%

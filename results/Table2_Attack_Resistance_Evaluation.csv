@@ -1,0 +1,7 @@
+Attack Name,Trials,Breaches,Mitigation Rate (%),Defense Mechanism
+Message Replay Attack,1000,0,100.00%,Ephemeral Ratchet Permutation Invalidation
+Message Replay Attack,1000,0,100.00%,Ephemeral Ratchet Permutation Invalidation
+Nucleotide Mutation / Tampering Attack,1000,0,100.00%,Bijective Mapping + Embedded CRC32 Guard
+Nucleotide Mutation / Tampering Attack,1000,0,100.00%,Bijective Mapping + Embedded CRC32 Guard
+Frequency & N-Gram Cryptanalysis Attack,3000,0,100.00%,Dynamic Rolling Permutation Shuffling
+Sybil Ghost Vehicle Injection Attack,1000,0,100.00%,Pairwise Ephemeral Seed Authentication
