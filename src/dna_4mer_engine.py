@@ -48,7 +48,9 @@ class DynamicPermutationState:
         """
         cache_key = (self.master_seed, self.frame_counter, self.session_id)
         if cache_key in _PERM_CACHE:
-            self.active_byte_to_4mer, self.active_4mer_to_byte = _PERM_CACHE[cache_key]
+            cached_byte_to_4mer, cached_4mer_to_byte = _PERM_CACHE[cache_key]
+            self.active_byte_to_4mer = list(cached_byte_to_4mer)
+            self.active_4mer_to_byte = dict(cached_4mer_to_byte)
             return
 
         # Pseudo-Random Permutation Seed derivation via SHA-256
@@ -67,7 +69,7 @@ class DynamicPermutationState:
             self.active_byte_to_4mer[b]: b for b in range(256)
         }
         if len(_PERM_CACHE) < 50000:
-            _PERM_CACHE[cache_key] = (self.active_byte_to_4mer, self.active_4mer_to_byte)
+            _PERM_CACHE[cache_key] = (list(self.active_byte_to_4mer), dict(self.active_4mer_to_byte))
 
     def ratchet_forward(self):
         """
