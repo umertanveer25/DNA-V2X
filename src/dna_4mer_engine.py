@@ -23,6 +23,9 @@ ALL_256_4MERS = [
 assert len(ALL_256_4MERS) == 256, "Canonical 4-mer universe must contain exactly 256 states."
 
 
+_PERM_CACHE = {}
+
+
 class DynamicPermutationState:
     """
     Maintains ephemeral pairwise session state, rolling frame counter,
@@ -43,6 +46,11 @@ class DynamicPermutationState:
         Derives an instantaneous bijective permutation of all 256 4-mers
         from the current ephemeral seed and frame counter in <2 microseconds.
         """
+        cache_key = (self.master_seed, self.frame_counter, self.session_id)
+        if cache_key in _PERM_CACHE:
+            self.active_byte_to_4mer, self.active_4mer_to_byte = _PERM_CACHE[cache_key]
+            return
+
         # Pseudo-Random Permutation Seed derivation via SHA-256
         seed_material = self.master_seed + struct.pack(">Q", self.frame_counter) + self.session_id.encode()
         derived_hash = hashlib.sha256(seed_material).digest()
@@ -58,6 +66,8 @@ class DynamicPermutationState:
         self.active_4mer_to_byte = {
             self.active_byte_to_4mer[b]: b for b in range(256)
         }
+        if len(_PERM_CACHE) < 50000:
+            _PERM_CACHE[cache_key] = (self.active_byte_to_4mer, self.active_4mer_to_byte)
 
     def ratchet_forward(self):
         """

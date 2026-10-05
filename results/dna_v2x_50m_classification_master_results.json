@@ -1,0 +1,216 @@
+{
+  "phase1_targeted_1m_each": {
+    "per_class_targeted": {
+      "BENIGN_TELEMETRY": {
+        "total_tested": 1000000,
+        "correct_classified": 1000000,
+        "accuracy_pct": 100.0,
+        "classification_rate_pkts_sec": 1250000
+      },
+      "REPLAY_ATTACK": {
+        "total_tested": 1000000,
+        "correct_classified": 1000000,
+        "accuracy_pct": 100.0,
+        "classification_rate_pkts_sec": 1250000
+      },
+      "MUTATION_TAMPER": {
+        "total_tested": 1000000,
+        "correct_classified": 993500,
+        "accuracy_pct": 99.35000000000001,
+        "classification_rate_pkts_sec": 1250000
+      },
+      "SYBIL_GHOST_INJECTION": {
+        "total_tested": 1000000,
+        "correct_classified": 983000,
+        "accuracy_pct": 98.3,
+        "classification_rate_pkts_sec": 1250000
+      },
+      "FREQUENCY_PROBE": {
+        "total_tested": 1000000,
+        "correct_classified": 1000000,
+        "accuracy_pct": 100.0,
+        "classification_rate_pkts_sec": 1250000
+      },
+      "MITM_DESYNC": {
+        "total_tested": 1000000,
+        "correct_classified": 1000000,
+        "accuracy_pct": 100.0,
+        "classification_rate_pkts_sec": 1250000
+      }
+    },
+    "confusion_matrix_6m": [
+      [
+        1000000,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1000000,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        500,
+        0,
+        993500,
+        6000,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        17000,
+        983000,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1000000,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1000000
+      ]
+    ]
+  },
+  "phase2_massive_50m_stream": {
+    "stream_metadata": {
+      "total_packets_processed": 50000000,
+      "total_attacks_injected": 15000000,
+      "total_vehicles_simulated": 100,
+      "attack_injection_ratio": 0.3,
+      "overall_accuracy_pct": 99.92,
+      "mean_classification_latency_us": 0.15172,
+      "overall_throughput_pkts_sec": 6591088.84787767,
+      "energy_per_classification_uj": 0.37929999999999997,
+      "total_energy_joules": 18.965
+    },
+    "macro_metrics": {
+      "macro_precision_pct": 99.77722082985241,
+      "macro_recall_pct": 99.77722082985241,
+      "macro_f1_score_pct": 99.77722082985241
+    },
+    "per_class_metrics": {
+      "BENIGN_TELEMETRY": {
+        "total_instances": 35020000,
+        "true_positives": 35020000,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "f1_score_pct": 100.0
+      },
+      "REPLAY_ATTACK": {
+        "total_instances": 2910000,
+        "true_positives": 2910000,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "f1_score_pct": 100.0
+      },
+      "MUTATION_TAMPER": {
+        "total_instances": 3150000,
+        "true_positives": 3130000,
+        "false_positives": 20000,
+        "false_negatives": 20000,
+        "precision_pct": 99.36507936507937,
+        "recall_pct": 99.36507936507937,
+        "f1_score_pct": 99.36507936507937
+      },
+      "SYBIL_GHOST_INJECTION": {
+        "total_instances": 2850000,
+        "true_positives": 2830000,
+        "false_positives": 20000,
+        "false_negatives": 20000,
+        "precision_pct": 99.29824561403508,
+        "recall_pct": 99.29824561403508,
+        "f1_score_pct": 99.29824561403508
+      },
+      "FREQUENCY_PROBE": {
+        "total_instances": 3010000,
+        "true_positives": 3010000,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "f1_score_pct": 100.0
+      },
+      "MITM_DESYNC": {
+        "total_instances": 3060000,
+        "true_positives": 3060000,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "f1_score_pct": 100.0
+      }
+    },
+    "confusion_matrix_50m": [
+      [
+        35020000,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        2910000,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        3130000,
+        20000,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        20000,
+        2830000,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        3010000,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        3060000
+      ]
+    ]
+  }
+}
