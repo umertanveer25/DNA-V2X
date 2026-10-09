@@ -1,0 +1,49 @@
+{
+  "veremi_dataset_metadata": {
+    "source": "SecureComm 2018 / Kamel et al. (Neuro-VeReMi)",
+    "total_records": 150000,
+    "benign_records": 126178,
+    "malicious_records": 23822,
+    "vehicle_groups": 34,
+    "disjoint_split": true
+  },
+  "test_fold_metrics": {
+    "test_samples": 30083,
+    "accuracy_pct": 87.61094305754081,
+    "macro_precision_pct": 73.39276243010198,
+    "macro_recall_pct": 50.62629284611457,
+    "macro_f1_pct": 48.049457651823076,
+    "mean_inference_latency_us": 2.9781537745570588,
+    "inference_throughput_pkts_sec": 335778.49758571654,
+    "confusion_matrix": [
+      [
+        26304,
+        36
+      ],
+      [
+        3691,
+        52
+      ]
+    ]
+  },
+  "per_category_metrics": {
+    "Benign Telemetry": {
+      "test_packets": 26340,
+      "precision_pct": 87.69461576929488,
+      "recall_pct": 99.86332574031891,
+      "f1_pct": 93.38421940179286
+    },
+    "Malicious Misbehavior": {
+      "test_packets": 3743,
+      "precision_pct": 59.09090909090909,
+      "recall_pct": 1.3892599519102324,
+      "f1_pct": 2.7146959018533017
+    }
+  },
+  "dna_v2x_encoding_benchmark": {
+    "packets_evaluated": 5000,
+    "round_trip_fidelity_pct": 100.0,
+    "mean_crypto_latency_us": 456.79534,
+    "throughput_pkts_sec": 2189.1641889341513
+  }
+}

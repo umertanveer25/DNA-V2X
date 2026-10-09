@@ -1,8 +1,8 @@
 """
 Massive Scale Attack Classification Benchmark for DNA-V2X:
-  1. Target 1,000,000 attacks for EACH individual attack type (6,000,000 targeted evaluations)
-  2. 50,000,000 Mixed Multi-Vehicle Moving Cars Communication Stream
-Calculates complete Confusion Matrix, Precision, Recall, F1-Score, Classification Latency, and Energy.
+  1. Authentic Multi-Class Targeted Threat Evaluation (12,000 Targeted Evaluations)
+  2. High-Throughput Moving Cars Stream Classification with Full End-to-End Pipeline Timing
+Calculates authentic Confusion Matrix, Precision, Recall, F1-Score, Pipeline Latency, and Energy.
 """
 
 import os
@@ -13,6 +13,12 @@ import csv
 import numpy as np
 from typing import Dict, Any, List, Tuple
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -32,7 +38,7 @@ def run_targeted_and_massive_stream_benchmark():
     os.makedirs(output_dir, exist_ok=True)
 
     print("=" * 80)
-    print("   DNA-V2X: 1,000,000 PER-TYPE (6M) & 50,000,000 MIXED STREAM CLASSIFICATION")
+    print("   DNA-V2X: HIGH-THROUGHPUT AUTHENTIC STREAM & TARGETED THREAT CLASSIFICATION")
     print("=" * 80)
 
     # 1. Calibrate classifier on empirical sample batch
@@ -43,14 +49,13 @@ def run_targeted_and_massive_stream_benchmark():
     classifier.train(f_c, y_c)
     print("[Calibration] Hybrid ML & Genomic Rule Classifier calibrated successfully.")
 
-    # 2. Phase 1: High-Speed Verification across 1M per class (6M Total Target)
-    print("\n[Phase 1] Evaluating 1,000,000 targeted attacks per class across 6 categories (6M total)...")
+    # 2. Phase 1: High-Speed Verification across targeted classes (authentic evaluation without multiplier)
+    print("\n[Phase 1] Evaluating targeted attacks per class across 6 categories...")
     phase1_results = {}
-    conf_matrix_6m = np.zeros((NUM_CLASSES, NUM_CLASSES), dtype=np.int64)
+    conf_matrix_targeted = np.zeros((NUM_CLASSES, NUM_CLASSES), dtype=np.int64)
 
     for c_idx in range(NUM_CLASSES):
         c_name = CLASS_NAMES[c_idx]
-        target_count = 1_000_000
         slice_size = 2000
 
         if c_idx == 0:
@@ -58,50 +63,49 @@ def run_targeted_and_massive_stream_benchmark():
         else:
             s_t, r_t, t_t, sp_t, pt_t, y_t = sim_calib.generate_streaming_batch(slice_size, attack_ratio=1.0, attack_types=[c_idx])
 
+        t0_p1 = time.perf_counter_ns()
         f_t = extract_features_vectorized(s_t, r_t, t_t, sp_t, pt_t)
         preds = classifier.classify_batch_fast(f_t)
+        t1_p1 = time.perf_counter_ns()
+
+        lat_p1_us = float((t1_p1 - t0_p1) / 1000.0) / float(len(preds))
+        tp_p1_pkts = float(1_000_000.0 / max(1e-6, lat_p1_us))
 
         acc = float(np.mean(preds == y_t)) * 100.0
         counts_sample = np.bincount(preds, minlength=NUM_CLASSES)
-        scale_factor = target_count / float(len(preds))
-        projected_row = np.round(counts_sample * scale_factor).astype(np.int64)
-        projected_row[c_idx] += (target_count - np.sum(projected_row))
-        conf_matrix_6m[c_idx, :] = projected_row
+        conf_matrix_targeted[c_idx, :] = counts_sample
 
         phase1_results[c_name] = {
-            "total_tested": target_count,
-            "correct_classified": int(projected_row[c_idx]),
+            "total_tested": int(len(preds)),
+            "correct_classified": int(counts_sample[c_idx]),
             "accuracy_pct": acc,
-            "classification_rate_pkts_sec": 1_250_000
+            "classification_rate_pkts_sec": tp_p1_pkts
         }
-        print(f"  --> Class {c_idx} [{c_name:22s}]: Accuracy = {acc:6.2f}% | Tested = {target_count:,} packets")
+        print(f"  --> Class {c_idx} [{c_name:22s}]: Accuracy = {acc:6.2f}% | Tested = {len(preds):,} packets")
 
-    # 3. Phase 2: Massive 50,000,000 Mixed Multi-Vehicle Communication Stream
-    print("\n[Phase 2] Evaluating 50,000,000 Mixed Stream on Moving Cars Highway Corridor...")
-    total_stream_packets = 50_000_000
+    # 3. Phase 2: Authentic Mixed Multi-Vehicle Communication Stream
+    print("\n[Phase 2] Evaluating Authentic Mixed Stream on Moving Cars Highway Corridor...")
+    stream_packets = 10_000
     attack_ratio = 0.30
 
     sim_warfare = MovingCarsSimulator(num_vehicles=100, seed=42)
-    s_w, r_w, t_w, sp_w, pt_w, y_w = sim_warfare.generate_streaming_batch(5000, attack_ratio=attack_ratio)
+    s_w, r_w, t_w, sp_w, pt_w, y_w = sim_warfare.generate_streaming_batch(stream_packets, attack_ratio=attack_ratio)
+
+    # Time FULL PIPELINE: Feature Extraction + Classification
+    t_feat0 = time.perf_counter_ns()
     f_w = extract_features_vectorized(s_w, r_w, t_w, sp_w, pt_w)
+    t_feat1 = time.perf_counter_ns()
 
     t_inf0 = time.perf_counter_ns()
     preds_w = classifier.classify_batch_fast(f_w)
     t_inf1 = time.perf_counter_ns()
 
-    per_pkt_lat_us = float((t_inf1 - t_inf0) / 1000.0) / float(len(f_w))
+    feat_lat_us = float((t_feat1 - t_feat0) / 1000.0) / float(len(f_w))
+    inf_lat_us = float((t_inf1 - t_inf0) / 1000.0) / float(len(f_w))
+    per_pkt_lat_us = feat_lat_us + inf_lat_us
     throughput_pkts_sec = float(1_000_000.0 / max(1e-6, per_pkt_lat_us))
 
-    conf_matrix_50m = np.zeros((NUM_CLASSES, NUM_CLASSES), dtype=np.int64)
-    raw_sample_cm = confusion_matrix(y_w, preds_w, labels=list(range(NUM_CLASSES)))
-
-    scale_50m = total_stream_packets / float(len(y_w))
-    for i in range(NUM_CLASSES):
-        scaled_row = np.round(raw_sample_cm[i, :] * scale_50m).astype(np.int64)
-        conf_matrix_50m[i, :] = scaled_row
-
-    total_assigned = int(np.sum(conf_matrix_50m))
-    conf_matrix_50m[0, 0] += (total_stream_packets - total_assigned)
+    conf_matrix_50m = confusion_matrix(y_w, preds_w, labels=list(range(NUM_CLASSES)))
 
     per_class_metrics = {}
     for c_idx in range(NUM_CLASSES):
@@ -126,26 +130,28 @@ def run_targeted_and_massive_stream_benchmark():
         }
 
     total_correct = int(np.trace(conf_matrix_50m))
-    overall_accuracy = (total_correct / float(total_stream_packets)) * 100.0
+    overall_accuracy = (total_correct / float(len(y_w))) * 100.0
     macro_precision = float(np.mean([m["precision_pct"] for m in per_class_metrics.values()]))
     macro_recall = float(np.mean([m["recall_pct"] for m in per_class_metrics.values()]))
     macro_f1 = float(np.mean([m["f1_score_pct"] for m in per_class_metrics.values()]))
 
     energy_per_classification_uj = 2.5 * per_pkt_lat_us
-    total_energy_joules = (energy_per_classification_uj * total_stream_packets) / 1e6
+    total_energy_joules = (energy_per_classification_uj * len(y_w)) / 1e6
 
     master_results = {
         "phase1_targeted_1m_each": {
             "per_class_targeted": phase1_results,
-            "confusion_matrix_6m": conf_matrix_6m.tolist()
+            "confusion_matrix_6m": conf_matrix_targeted.tolist()
         },
         "phase2_massive_50m_stream": {
             "stream_metadata": {
-                "total_packets_processed": total_stream_packets,
-                "total_attacks_injected": int(total_stream_packets * attack_ratio),
+                "total_packets_processed": len(y_w),
+                "total_attacks_injected": int(np.sum(y_w > 0)),
                 "total_vehicles_simulated": 100,
                 "attack_injection_ratio": attack_ratio,
                 "overall_accuracy_pct": overall_accuracy,
+                "feature_extraction_latency_us": feat_lat_us,
+                "inference_latency_us": inf_lat_us,
                 "mean_classification_latency_us": per_pkt_lat_us,
                 "overall_throughput_pkts_sec": throughput_pkts_sec,
                 "energy_per_classification_uj": energy_per_classification_uj,
@@ -189,14 +195,17 @@ def run_targeted_and_massive_stream_benchmark():
     print(f"[Export] Table 3 CSV saved: {csv_path}")
 
     print("\n" + "#" * 80)
-    print("   ALL 1M PER-TYPE (6M) & 50M MIXED STREAM BENCHMARKS 100% COMPLETE!")
-    print(f"   Total Volume:     56,000,000 Packets Evaluated")
+    print("   ALL TARGETED & STREAM BENCHMARKS 100% COMPLETE!")
+    print(f"   Total Volume:     {len(y_w):,} Packets Evaluated (Authentic Stream)")
     print(f"   Overall Accuracy: {overall_accuracy:.3f}%")
     print(f"   Macro F1-Score:   {macro_f1:.3f}%")
-    print(f"   Classification:   {per_pkt_lat_us:.3f} μs / packet ({throughput_pkts_sec:,.0f} pkts/s)")
-    print(f"   Edge Energy:      {energy_per_classification_uj:.3f} μJ / classification")
+    print(f"   Feature Extract:  {feat_lat_us:.3f} us / packet")
+    print(f"   Inference:        {inf_lat_us:.3f} us / packet")
+    print(f"   End-to-End Lat:   {per_pkt_lat_us:.3f} us / packet ({throughput_pkts_sec:,.0f} pkts/s)")
+    print(f"   Edge Energy:      {energy_per_classification_uj:.3f} uJ / classification")
     print("#" * 80 + "\n")
 
 
 if __name__ == "__main__":
     run_targeted_and_massive_stream_benchmark()
+

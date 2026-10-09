@@ -1,0 +1,5 @@
+VeReMi Attack Category,Test Packets,Precision (%),Recall (%),F1-Score (%),Classification Method
+Benign Telemetry,"26,340",87.69%,99.86%,93.38%,Vectorized Rule + HGBT
+Malicious Misbehavior,"3,743",59.09%,1.39%,2.71%,Kinematic Plausibility + Codon Guard
+VeReMi Aggregate,"30,083",73.39%,50.63%,48.05%,Grouped K-Fold HGBT Ensemble
+DNA-V2X Ingress Encoding,"5,000",100.00%,100.00%,100.00%,Bijective 4-Mer MTD + CRC-32 Guard

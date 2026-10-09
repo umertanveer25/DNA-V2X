@@ -2,45 +2,45 @@
   "phase1_targeted_1m_each": {
     "per_class_targeted": {
       "BENIGN_TELEMETRY": {
-        "total_tested": 1000000,
-        "correct_classified": 1000000,
+        "total_tested": 2000,
+        "correct_classified": 2000,
         "accuracy_pct": 100.0,
-        "classification_rate_pkts_sec": 1250000
+        "classification_rate_pkts_sec": 10244.878201204285
       },
       "REPLAY_ATTACK": {
-        "total_tested": 1000000,
-        "correct_classified": 1000000,
+        "total_tested": 2000,
+        "correct_classified": 2000,
         "accuracy_pct": 100.0,
-        "classification_rate_pkts_sec": 1250000
+        "classification_rate_pkts_sec": 5199.3036052751095
       },
       "MUTATION_TAMPER": {
-        "total_tested": 1000000,
-        "correct_classified": 993500,
-        "accuracy_pct": 99.35000000000001,
-        "classification_rate_pkts_sec": 1250000
+        "total_tested": 2000,
+        "correct_classified": 1946,
+        "accuracy_pct": 97.3,
+        "classification_rate_pkts_sec": 236.04406853062721
       },
       "SYBIL_GHOST_INJECTION": {
-        "total_tested": 1000000,
-        "correct_classified": 983000,
-        "accuracy_pct": 98.3,
-        "classification_rate_pkts_sec": 1250000
+        "total_tested": 2000,
+        "correct_classified": 1989,
+        "accuracy_pct": 99.45,
+        "classification_rate_pkts_sec": 236.35132826078475
       },
       "FREQUENCY_PROBE": {
-        "total_tested": 1000000,
-        "correct_classified": 1000000,
-        "accuracy_pct": 100.0,
-        "classification_rate_pkts_sec": 1250000
+        "total_tested": 2000,
+        "correct_classified": 1978,
+        "accuracy_pct": 98.9,
+        "classification_rate_pkts_sec": 269.7720486887291
       },
       "MITM_DESYNC": {
-        "total_tested": 1000000,
-        "correct_classified": 1000000,
+        "total_tested": 2000,
+        "correct_classified": 2000,
         "accuracy_pct": 100.0,
-        "classification_rate_pkts_sec": 1250000
+        "classification_rate_pkts_sec": 887.9381242094021
       }
     },
     "confusion_matrix_6m": [
       [
-        1000000,
+        2000,
         0,
         0,
         0,
@@ -49,34 +49,34 @@
       ],
       [
         0,
-        1000000,
+        2000,
         0,
         0,
         0,
         0
       ],
       [
-        500,
+        1,
         0,
-        993500,
-        6000,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        17000,
-        983000,
+        1946,
+        53,
         0,
         0
       ],
       [
         0,
         0,
+        11,
+        1989,
+        0,
+        0
+      ],
+      [
         0,
         0,
-        1000000,
+        22,
+        0,
+        1978,
         0
       ],
       [
@@ -85,31 +85,33 @@
         0,
         0,
         0,
-        1000000
+        2000
       ]
     ]
   },
   "phase2_massive_50m_stream": {
     "stream_metadata": {
-      "total_packets_processed": 50000000,
-      "total_attacks_injected": 15000000,
+      "total_packets_processed": 10000,
+      "total_attacks_injected": 3010,
       "total_vehicles_simulated": 100,
       "attack_injection_ratio": 0.3,
-      "overall_accuracy_pct": 99.92,
-      "mean_classification_latency_us": 0.15172,
-      "overall_throughput_pkts_sec": 6591088.84787767,
-      "energy_per_classification_uj": 0.37929999999999997,
-      "total_energy_joules": 18.965
+      "overall_accuracy_pct": 99.72,
+      "feature_extraction_latency_us": 1076.36804,
+      "inference_latency_us": 4.62179,
+      "mean_classification_latency_us": 1080.98983,
+      "overall_throughput_pkts_sec": 925.0780832970464,
+      "energy_per_classification_uj": 2702.474575,
+      "total_energy_joules": 27.02474575
     },
     "macro_metrics": {
-      "macro_precision_pct": 99.77722082985241,
-      "macro_recall_pct": 99.77722082985241,
-      "macro_f1_score_pct": 99.77722082985241
+      "macro_precision_pct": 99.2363584822909,
+      "macro_recall_pct": 99.25693283281673,
+      "macro_f1_score_pct": 99.23496893512414
     },
     "per_class_metrics": {
       "BENIGN_TELEMETRY": {
-        "total_instances": 35020000,
-        "true_positives": 35020000,
+        "total_instances": 6990,
+        "true_positives": 6990,
         "false_positives": 0,
         "false_negatives": 0,
         "precision_pct": 100.0,
@@ -117,8 +119,8 @@
         "f1_score_pct": 100.0
       },
       "REPLAY_ATTACK": {
-        "total_instances": 2910000,
-        "true_positives": 2910000,
+        "total_instances": 619,
+        "true_positives": 619,
         "false_positives": 0,
         "false_negatives": 0,
         "precision_pct": 100.0,
@@ -126,35 +128,35 @@
         "f1_score_pct": 100.0
       },
       "MUTATION_TAMPER": {
-        "total_instances": 3150000,
-        "true_positives": 3130000,
-        "false_positives": 20000,
-        "false_negatives": 20000,
-        "precision_pct": 99.36507936507937,
-        "recall_pct": 99.36507936507937,
-        "f1_score_pct": 99.36507936507937
+        "total_instances": 634,
+        "true_positives": 609,
+        "false_positives": 3,
+        "false_negatives": 25,
+        "precision_pct": 99.50980392156863,
+        "recall_pct": 96.05678233438486,
+        "f1_score_pct": 97.75280898876404
       },
       "SYBIL_GHOST_INJECTION": {
-        "total_instances": 2850000,
-        "true_positives": 2830000,
-        "false_positives": 20000,
-        "false_negatives": 20000,
-        "precision_pct": 99.29824561403508,
-        "recall_pct": 99.29824561403508,
-        "f1_score_pct": 99.29824561403508
+        "total_instances": 587,
+        "true_positives": 586,
+        "false_positives": 25,
+        "false_negatives": 1,
+        "precision_pct": 95.90834697217676,
+        "recall_pct": 99.82964224872232,
+        "f1_score_pct": 97.8297161936561
       },
       "FREQUENCY_PROBE": {
-        "total_instances": 3010000,
-        "true_positives": 3010000,
+        "total_instances": 580,
+        "true_positives": 578,
         "false_positives": 0,
-        "false_negatives": 0,
+        "false_negatives": 2,
         "precision_pct": 100.0,
-        "recall_pct": 100.0,
-        "f1_score_pct": 100.0
+        "recall_pct": 99.6551724137931,
+        "f1_score_pct": 99.8272884283247
       },
       "MITM_DESYNC": {
-        "total_instances": 3060000,
-        "true_positives": 3060000,
+        "total_instances": 590,
+        "true_positives": 590,
         "false_positives": 0,
         "false_negatives": 0,
         "precision_pct": 100.0,
@@ -164,7 +166,7 @@
     },
     "confusion_matrix_50m": [
       [
-        35020000,
+        6990,
         0,
         0,
         0,
@@ -173,7 +175,7 @@
       ],
       [
         0,
-        2910000,
+        619,
         0,
         0,
         0,
@@ -182,17 +184,25 @@
       [
         0,
         0,
-        3130000,
-        20000,
+        609,
+        25,
         0,
         0
       ],
       [
         0,
         0,
-        20000,
-        2830000,
+        1,
+        586,
         0,
+        0
+      ],
+      [
+        0,
+        0,
+        2,
+        0,
+        578,
         0
       ],
       [
@@ -200,16 +210,8 @@
         0,
         0,
         0,
-        3010000,
-        0
-      ],
-      [
         0,
-        0,
-        0,
-        0,
-        0,
-        3060000
+        590
       ]
     ]
   }

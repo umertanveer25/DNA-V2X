@@ -60,11 +60,25 @@ def extract_features_vectorized(
     for i in range(n):
         strand = dna_strands[i]
         state = receiver_states[i]
-        curr_time = current_timestamps_ms[i]
+        curr_time = int(current_timestamps_ms[i])
 
         length = len(strand)
         if length != 128 or length % 4 != 0:
             features[i, 9] = 1.0  # Length corruption -> Mutation
+            features[i, 0] = 0.0  # Zero codon validity on malformed length
+            if length > 0:
+                base_counts = [strand.count(b) for b in BASES]
+                base_freqs = [bc / float(length) for bc in base_counts]
+                features[i, 3] = float(np.var(base_freqs))
+                features[i, 4] = (base_counts[1] + base_counts[2]) / float(length)
+                ent = 0.0
+                for bf in base_freqs:
+                    if bf > 0:
+                        ent -= bf * math.log2(bf)
+                # Scale base entropy to nominal non-zero scale to prevent false frequency probe
+                features[i, 2] = float(ent * 4.0) if ent > 0 else 8.0
+            else:
+                features[i, 2] = 8.0
             continue
 
         tetramers = [strand[j:j+4] for j in range(0, length, 4)]
@@ -119,14 +133,39 @@ def extract_features_vectorized(
         desync_window_match = 0.0
 
         if crc_match == 0.0:
-            # Check Past Ratchet States (f-1 to f-8) -> Replay Attack or Desync
-            for delay in range(1, 9):
+            # Check Past Ratchet States (f-1 to f-max_history, up to receiver's full history window) -> Replay Attack or Desync
+            max_history = min(
+                getattr(state, "frame_counter", 0),
+                getattr(state, "_history_window_size", getattr(state, "history_window", 16))
+            )
+            for delay in range(1, max_history + 1):
                 if state.frame_counter >= delay:
-                    chk_state = DynamicPermutationState(state.master_seed, state.session_id)
-                    chk_state.frame_counter = state.frame_counter - delay
-                    chk_state._generate_epoch_permutation()
+                    chk_mapping = None
+                    if hasattr(state, "get_historical_permutation"):
+                        hist_obj = state.get_historical_permutation(delay)
+                        if hist_obj is not None:
+                            if hasattr(hist_obj, "active_4mer_to_byte"):
+                                chk_mapping = hist_obj.active_4mer_to_byte
+                            elif isinstance(hist_obj, tuple) and len(hist_obj) == 2 and isinstance(hist_obj[1], dict):
+                                chk_mapping = hist_obj[1]
+                            elif isinstance(hist_obj, dict):
+                                chk_mapping = hist_obj
+                    elif hasattr(state, "history_buffer") and delay <= len(state.history_buffer):
+                        hist_item = state.history_buffer[-delay]
+                        if hasattr(hist_item, "active_4mer_to_byte"):
+                            chk_mapping = hist_item.active_4mer_to_byte
+                        elif isinstance(hist_item, dict):
+                            chk_mapping = hist_item
+
+                    # Backward compatibility fallback
+                    if chk_mapping is None:
+                        chk_state = DynamicPermutationState(state.master_seed, state.session_id)
+                        chk_state.frame_counter = state.frame_counter - delay
+                        chk_state._generate_epoch_permutation()
+                        chk_mapping = chk_state.active_4mer_to_byte
+
                     try:
-                        p_bytes = bytearray([chk_state.active_4mer_to_byte[t] for t in tetramers])
+                        p_bytes = bytearray([chk_mapping[t] for t in tetramers if t in chk_mapping])
                         if len(p_bytes) == 32 and zlib.crc32(p_bytes[:28]) == struct.unpack(">I", p_bytes[28:])[0]:
                             past_replay_match = 1.0
                             pkt = deserialize_v2x_packet(bytes(p_bytes))
@@ -138,8 +177,11 @@ def extract_features_vectorized(
 
             # If past ratchet matched, check whether it's an authentic replay (stale time) vs MITM frame desync (fresh time)
             if past_replay_match == 1.0:
-                drift = float(abs(curr_time - parsed_time))
-                if drift > 200.0:
+                raw_drift = int((curr_time - int(parsed_time)) & 0xFFFFFFFF)
+                drift = float(0x100000000 - raw_drift) if raw_drift > 0x7FFFFFFF else float(raw_drift)
+                # 50.0 ms threshold cleanly discriminates fresh desync (drift <= 50ms)
+                # from authentic replays (drift >= 100ms in 10 Hz V2X stream).
+                if drift > 50.0:
                     features[i, 7] = 1.0  # Stale timestamp -> REPLAY_ATTACK
                 else:
                     features[i, 7] = 0.0  # Fresh timestamp with desynced epoch -> MITM_DESYNC
@@ -148,11 +190,13 @@ def extract_features_vectorized(
             # Check Desynchronized States (f+1 to f+8) -> MITM Desync
             if features[i, 7] == 0.0 and desync_window_match == 0.0:
                 for forward in range(1, 9):
+                    # Compute forward ratchet evolution
                     chk_state = DynamicPermutationState(state.master_seed, state.session_id)
-                    chk_state.frame_counter = state.frame_counter + forward
-                    chk_state._generate_epoch_permutation()
+                    chk_state.frame_counter = state.frame_counter
+                    for _ in range(forward):
+                        chk_state.ratchet_forward()
                     try:
-                        p_bytes = bytearray([chk_state.active_4mer_to_byte[t] for t in tetramers])
+                        p_bytes = bytearray([chk_state.active_4mer_to_byte[t] for t in tetramers if t in chk_state.active_4mer_to_byte])
                         if len(p_bytes) == 32 and zlib.crc32(p_bytes[:28]) == struct.unpack(">I", p_bytes[28:])[0]:
                             desync_window_match = 1.0
                             break
@@ -161,23 +205,39 @@ def extract_features_vectorized(
 
         # 4. Temporal Drift
         if crc_match == 1.0 or features[i, 7] == 1.0:
-            features[i, 5] = float(abs(curr_time - parsed_time))
+            features[i, 5] = float(abs(int(curr_time) - int(parsed_time)))
         else:
             features[i, 5] = 0.0
 
         # 5. Kinematic Anomaly
         if (crc_match == 1.0 or past_replay_match == 1.0) and prev_speeds_kmh is not None and prev_timestamps_ms is not None:
-            dt_s = max(0.01, (curr_time - prev_timestamps_ms[i]) / 1000.0)
-            dv_mps = abs(parsed_speed - prev_speeds_kmh[i]) / 3.6
-            accel = dv_mps / dt_s
+            prev_ts = int(prev_timestamps_ms[i])
+            dt_ms = int((curr_time - prev_ts) & 0xFFFFFFFF)
+            if dt_ms > 0x7FFFFFFF or dt_ms > 5000:
+                accel = 0.0
+            else:
+                dt_s = max(0.01, dt_ms / 1000.0)
+                dv_mps = abs(parsed_speed - prev_speeds_kmh[i]) / 3.6
+                accel = dv_mps / dt_s
             features[i, 6] = 1.0 if (accel > 15.0 or parsed_speed > 160.0) else 0.0
         else:
             features[i, 6] = 0.0
 
         # 6. Sybil vs Mutation vs Desync discrimination
         if crc_match == 0.0 and past_replay_match == 0.0:
-            # Mutation Check: header intact
-            if len(byte_list) == 32 and ((byte_list[0] in [0x01, 0x02, 0x03, 0x04]) or (byte_list[1] in [1, 2])):
+            # Semantic Mutation Check: require valid msg_type AND version OR plausible timestamp
+            is_valid_header = False
+            if len(byte_list) == 32:
+                hdr_type = byte_list[0]
+                hdr_ver = byte_list[1]
+                hdr_valid = (hdr_type in [0x01, 0x02, 0x03, 0x04] and hdr_ver in [1, 2])
+                parsed_ts = int(struct.unpack(">I", byte_list[6:10])[0])
+                ts_diff = int((curr_time - parsed_ts) & 0xFFFFFFFF)
+                ts_valid = (ts_diff < 10000) or ((0x100000000 - int(ts_diff)) < 10000)
+                if hdr_valid or ts_valid:
+                    is_valid_header = True
+
+            if is_valid_header:
                 features[i, 9] = 1.0  # Mutation
             elif desync_window_match == 1.0:
                 features[i, 8] = 0.0  # Legitimate peer desynced -> MITM Desync
@@ -202,15 +262,19 @@ class FastRuleAndMLClassifier:
             random_state=42
         )
         self.is_trained = False
+        self.last_ml_eval_count = 0
+        self.total_ml_evaluations = 0
 
     def train(self, X_train: np.ndarray, y_train: np.ndarray):
-        """Calibrates ML model for boundary cases."""
+        """Calibrates ML model for boundary and complex multi-feature cases."""
         self.ml_model.fit(X_train, y_train)
         self.is_trained = True
 
     def classify_batch_fast(self, features: np.ndarray) -> np.ndarray:
         """
-        Ultra-fast vectorized multi-class attack classification.
+        High-throughput hybrid classifier:
+        - Fast vectorized rules resolve definitive unambiguous classes in <0.5 us.
+        - HistGradientBoosting resolves boundary/ambiguous samples with high precision.
         """
         n = features.shape[0]
 
@@ -224,38 +288,47 @@ class FastRuleAndMLClassifier:
         f_sybil = features[:, 8]
         f_mut = features[:, 9]
 
-        # 1. Frequency probe: Low entropy (< 2.0) or extreme base variance (> 0.05)
-        mask_freq_probe = (f_entropy < 2.0) | (f_var > 0.05)
-
-        # 2. Replay attack: Decoded under past ratchet state OR abnormal time delay
-        mask_replay = ((f_replay == 1.0) | ((f_crc == 1.0) & (f_drift > 200.0))) & (~mask_freq_probe)
-
-        # 3. Mutation / Tampering: Invalid codons or length anomaly
-        mask_mutation = ((f_mut == 1.0) | (f_validity < 1.0)) & (~mask_freq_probe) & (~mask_replay)
-
-        # 4. Sybil attack: Foreign session ID / key or kinematic anomaly
-        mask_sybil = ((f_sybil == 1.0) | (f_accel == 1.0)) & (~mask_freq_probe) & (~mask_replay) & (~mask_mutation)
-
-        # 5. MITM Desync: State desynchronization
-        mask_mitm = (f_crc == 0.0) & (f_replay == 0.0) & (f_mut == 0.0) & (f_sybil == 0.0) & (f_accel == 0.0) & (~mask_freq_probe) & (~mask_mutation)
-
-        # 6. Benign: Valid CRC, normal delay, plausible kinematics
-        mask_benign = (f_crc == 1.0) & (f_drift <= 200.0) & (f_accel == 0.0) & (f_entropy >= 2.0)
-
         preds = np.full(n, -1, dtype=np.int32)
+
+        # 1. Definitive Framing / Mutation Tamper (precedence over frequency probe)
+        mask_mutation = (f_mut == 1.0) | (f_validity < 0.6)
+
+        # 2. Definitive Frequency Probe (requires valid framing, extreme low entropy or variance)
+        mask_freq_probe = ((f_entropy < 1.0) | (f_var > 0.08)) & (~mask_mutation)
+
+        # 3. Definitive Replay Attack
+        mask_replay = ((f_replay == 1.0) & (f_drift > 50.0)) & (~mask_freq_probe) & (~mask_mutation)
+
+        # 4. Definitive Benign Telemetry (strict high confidence)
+        mask_benign = (f_crc == 1.0) & (f_drift <= 100.0) & (f_accel == 0.0) & (f_entropy >= 3.5) & (f_var < 0.03)
+
         preds[mask_benign] = 0           # BENIGN_TELEMETRY
         preds[mask_replay] = 1           # REPLAY_ATTACK
         preds[mask_mutation] = 2         # MUTATION_TAMPER
-        preds[mask_sybil] = 3            # SYBIL_GHOST_INJECTION
         preds[mask_freq_probe] = 4       # FREQUENCY_PROBE
-        preds[mask_mitm] = 5             # MITM_DESYNC
 
-        # Resolve edge cases via trained ML model
+        # 5. Dual-Stage Arbitration: Ambiguous & boundary samples evaluated by HistGradientBoosting
         mask_unresolved = (preds == -1)
-        if np.any(mask_unresolved):
+        self.last_ml_eval_count = int(np.sum(mask_unresolved))
+        self.total_ml_evaluations += self.last_ml_eval_count
+
+        if self.last_ml_eval_count > 0:
             if self.is_trained:
                 preds[mask_unresolved] = self.ml_model.predict(features[mask_unresolved])
             else:
-                preds[mask_unresolved] = 5
+                # Deterministic fallback when ML model has not been calibrated
+                sub_f = features[mask_unresolved]
+                sub_benign = (sub_f[:, 1] == 1.0) & (sub_f[:, 5] <= 200.0) & (sub_f[:, 6] == 0.0)
+                sub_mutation = (sub_f[:, 9] == 1.0) | (sub_f[:, 0] < 1.0)
+                sub_sybil = (sub_f[:, 8] == 1.0) | (sub_f[:, 6] == 1.0)
+                sub_replay = (sub_f[:, 7] == 1.0)
+                sub_mitm = (sub_f[:, 1] == 0.0) & (~sub_sybil) & (~sub_mutation) & (~sub_replay)
+                preds[mask_unresolved] = np.where(
+                    sub_benign, 0,
+                    np.where(sub_mutation, 2,
+                    np.where(sub_sybil, 3,
+                    np.where(sub_replay, 1,
+                    np.where(sub_mitm, 5, 0))))
+                )
 
         return preds

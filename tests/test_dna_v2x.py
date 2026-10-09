@@ -130,6 +130,47 @@ class TestDNA4MerEngine(unittest.TestCase):
         for base in BASES:
             self.assertAlmostEqual(freqs[base], 0.25, places=2)
 
+    def test_genomic_spn_invertibility_and_avalanche(self):
+        """Verify Genomic-SPN exact decoding invertibility and >40% avalanche nucleotide diffusion."""
+        payload1 = b"VEHICLE_CRITICAL_TELEMETRY_0123!"  # 32 bytes
+        # Flip exactly 1 bit in the last byte
+        payload2 = bytearray(payload1)
+        payload2[-1] ^= 0x01
+        payload2 = bytes(payload2)
+
+        strand1 = self.engine.encode_spn_bytes(payload1, self.state_alice)
+        strand2 = self.engine.encode_spn_bytes(payload2, self.state_alice)
+
+        # Invertibility check
+        recovered1 = self.engine.decode_spn_strand(strand1, self.state_bob)
+        recovered2 = self.engine.decode_spn_strand(strand2, self.state_bob)
+        self.assertEqual(payload1, recovered1)
+        self.assertEqual(payload2, recovered2)
+
+        # Avalanche check: count differing nucleotides
+        diff_count = sum(1 for c1, c2 in zip(strand1, strand2) if c1 != c2)
+        diff_ratio = diff_count / len(strand1)
+        self.assertGreaterEqual(diff_ratio, 0.40, f"Avalanche ratio too low: {diff_ratio:.2%}")
+
+    def test_physical_entropy_ratchet(self):
+        """Verify cross-layer physical entropy alters forward ratchet evolution."""
+        csi_antenna_state_1 = b"RF_CSI_MULTIPATH_ESTIMATE_VEHICLE_A"
+        csi_antenna_state_2 = b"RF_CSI_MULTIPATH_ESTIMATE_VEHICLE_B"
+
+        state_1 = DynamicPermutationState(b"SHARED_MASTER_SEED")
+        state_2 = DynamicPermutationState(b"SHARED_MASTER_SEED")
+
+        # Ratchet with matching physical entropy
+        state_1.ratchet_forward(physical_entropy=csi_antenna_state_1)
+        state_2.ratchet_forward(physical_entropy=csi_antenna_state_1)
+        self.assertEqual(state_1.master_seed, state_2.master_seed)
+
+        # Ratchet with mismatched physical entropy
+        state_2.ratchet_forward(physical_entropy=csi_antenna_state_2)
+        state_1.ratchet_forward(physical_entropy=csi_antenna_state_1)
+        self.assertNotEqual(state_1.master_seed, state_2.master_seed)
+
+
 
 class TestV2XSchemas(unittest.TestCase):
     def test_all_message_types_serialization(self):
@@ -161,6 +202,17 @@ class TestV2XSchemas(unittest.TestCase):
         corrupted[5] ^= 0xFF  # Flip bits
         with self.assertRaises(ValueError):
             deserialize_v2x_packet(bytes(corrupted))
+
+    def test_lightweight_mac_verification(self):
+        """Verify constant-time 4-byte lightweight MAC computation and verification."""
+        from src.v2x_telemetry_schema import compute_lightweight_mac, verify_lightweight_mac
+        payload = b"PAYLOAD_28_BYTES_TESTING_01!"
+        key = b"SYMMETRIC_SESSION_KEY_01"
+        mac = compute_lightweight_mac(payload, key)
+        self.assertEqual(len(mac), 4)
+        self.assertTrue(verify_lightweight_mac(payload, mac, key))
+        self.assertFalse(verify_lightweight_mac(payload, b"WRNG", key))
+        self.assertFalse(verify_lightweight_mac(b"MODIFIED_PAYLOAD_28_BYTES_01", mac, key))
 
 
 class TestAttackSimulator(unittest.TestCase):

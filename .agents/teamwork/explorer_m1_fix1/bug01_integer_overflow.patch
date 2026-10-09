@@ -1,0 +1,45 @@
+--- a/src/attack_classifier.py
++++ b/src/attack_classifier.py
+@@ -60,7 +60,7 @@
+     for i in range(n):
+         strand = dna_strands[i]
+         state = receiver_states[i]
+-        curr_time = current_timestamps_ms[i]
++        curr_time = int(current_timestamps_ms[i])
+ 
+         length = len(strand)
+         if length != 128 or length % 4 != 0:
+@@ -173,8 +173,8 @@
+ 
+             # If past ratchet matched, check whether it's an authentic replay (stale time) vs MITM frame desync (fresh time)
+             if past_replay_match == 1.0:
+-                raw_drift = (curr_time - parsed_time) & 0xFFFFFFFF
+-                drift = float(0x100000000 - raw_drift) if raw_drift > 0x7FFFFFFF else float(raw_drift)
++                raw_drift = int((curr_time - int(parsed_time)) & 0xFFFFFFFF)
++                drift = float(0x100000000 - raw_drift) if raw_drift > 0x7FFFFFFF else float(raw_drift)
+                 if drift > 200.0:
+                     features[i, 7] = 1.0  # Stale timestamp -> REPLAY_ATTACK
+                 else:
+@@ -205,7 +205,8 @@
+ 
+         # 5. Kinematic Anomaly
+         if (crc_match == 1.0 or past_replay_match == 1.0) and prev_speeds_kmh is not None and prev_timestamps_ms is not None:
+-            dt_ms = (curr_time - prev_timestamps_ms[i]) & 0xFFFFFFFF
++            prev_ts = int(prev_timestamps_ms[i])
++            dt_ms = int((curr_time - prev_ts) & 0xFFFFFFFF)
+             if dt_ms > 0x7FFFFFFF or dt_ms > 5000:
+                 accel = 0.0
+             else:
+@@ -224,9 +225,9 @@
+                 hdr_type = byte_list[0]
+                 hdr_ver = byte_list[1]
+                 hdr_valid = (hdr_type in [0x01, 0x02, 0x03, 0x04] and hdr_ver in [1, 2])
+-                parsed_ts = struct.unpack(">I", byte_list[6:10])[0]
+-                ts_diff = (curr_time - parsed_ts) & 0xFFFFFFFF
+-                ts_valid = (ts_diff < 10000) or ((0x100000000 - ts_diff) < 10000)
++                parsed_ts = int(struct.unpack(">I", byte_list[6:10])[0])
++                ts_diff = int((curr_time - parsed_ts) & 0xFFFFFFFF)
++                ts_valid = (ts_diff < 10000) or ((0x100000000 - int(ts_diff)) < 10000)
+                 if hdr_valid or ts_valid:
+                     is_valid_header = True
+ 

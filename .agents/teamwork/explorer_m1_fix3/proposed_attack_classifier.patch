@@ -1,0 +1,53 @@
+--- a/src/attack_classifier.py
++++ b/src/attack_classifier.py
+@@ -173,11 +173,13 @@
+ 
+             # If past ratchet matched, check whether it's an authentic replay (stale time) vs MITM frame desync (fresh time)
+             if past_replay_match == 1.0:
+-                raw_drift = (curr_time - parsed_time) & 0xFFFFFFFF
++                raw_drift = (int(curr_time) - int(parsed_time)) & 0xFFFFFFFF
+                 drift = float(0x100000000 - raw_drift) if raw_drift > 0x7FFFFFFF else float(raw_drift)
+-                if drift > 200.0:
++                # ANOMALY-03 Fix: 50.0 ms threshold cleanly discriminates fresh desync (drift <= 50ms)
++                # from authentic replays (drift >= 100ms in 10 Hz V2X stream).
++                if drift > 50.0:
+                     features[i, 7] = 1.0  # Stale timestamp -> REPLAY_ATTACK
+                 else:
+                     features[i, 7] = 0.0  # Fresh timestamp with desynced epoch -> MITM_DESYNC
+                     desync_window_match = 1.0
+ 
+@@ -199,7 +201,7 @@
+ 
+         # 4. Temporal Drift
+         if crc_match == 1.0 or features[i, 7] == 1.0:
+-            features[i, 5] = float(abs(curr_time - parsed_time))
++            features[i, 5] = float(abs(int(curr_time) - int(parsed_time)))
+         else:
+             features[i, 5] = 0.0
+ 
+@@ -291,7 +293,7 @@
+         mask_freq_probe = ((f_entropy < 1.0) | (f_var > 0.08)) & (~mask_mutation)
+ 
+         # 3. Definitive Replay Attack
+-        mask_replay = ((f_replay == 1.0) & (f_drift > 200.0)) & (~mask_freq_probe) & (~mask_mutation)
++        mask_replay = ((f_replay == 1.0) & (f_drift > 50.0)) & (~mask_freq_probe) & (~mask_mutation)
+ 
+         # 4. Definitive Benign Telemetry (strict high confidence)
+         mask_benign = (f_crc == 1.0) & (f_drift <= 100.0) & (f_accel == 0.0) & (f_entropy >= 3.5) & (f_var < 0.03)
+@@ -314,7 +316,15 @@
+                 sub_benign = (sub_f[:, 1] == 1.0) & (sub_f[:, 5] <= 200.0) & (sub_f[:, 6] == 0.0)
+                 sub_mutation = (sub_f[:, 9] == 1.0) | (sub_f[:, 0] < 1.0)
+                 sub_sybil = (sub_f[:, 8] == 1.0) | (sub_f[:, 6] == 1.0)
+-                sub_mitm = (sub_f[:, 1] == 0.0) & (~sub_sybil) & (~sub_mutation)
+-                preds[mask_unresolved] = np.where(sub_benign, 0, np.where(sub_mutation, 2, np.where(sub_sybil, 3, np.where(sub_mitm, 5, 0))))
++                sub_replay = (sub_f[:, 7] == 1.0)
++                sub_mitm = (sub_f[:, 1] == 0.0) & (~sub_sybil) & (~sub_mutation) & (~sub_replay)
++                preds[mask_unresolved] = np.where(
++                    sub_benign, 0,
++                    np.where(sub_mutation, 2,
++                    np.where(sub_sybil, 3,
++                    np.where(sub_replay, 1,
++                    np.where(sub_mitm, 5, 0))))
++                )
+ 
+         return preds
