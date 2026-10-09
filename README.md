@@ -127,8 +127,8 @@ Active permutation tables in memory are immediately zero-filled (`purge_memory()
 | :--- | :---: | :---: | :---: | :--- |
 | **Message Replay Attack (Delay = 1 frame)** | 1,000 | **0** | **100.00%** | Ephemeral Ratchet Permutation Invalidation |
 | **Message Replay Attack (Delay = 5 frames)** | 1,000 | **0** | **100.00%** | Ephemeral Ratchet Permutation Invalidation |
-| **Nucleotide Mutation / Tampering Attack (1-base flip)** | 1,000 | **0** | **100.00%** | Bijective Mapping + Embedded CRC32 Guard |
-| **Nucleotide Mutation / Tampering Attack (3-base flip)** | 1,000 | **0** | **100.00%** | Bijective Mapping + Embedded CRC32 Guard |
+| **Nucleotide Mutation / Tampering Attack (1-base flip)** | 1,000 | **0** | **100.00%** | Bijective Mapping + Embedded SipHash MAC Guard |
+| **Nucleotide Mutation / Tampering Attack (3-base flip)** | 1,000 | **0** | **100.00%** | Bijective Mapping + Embedded SipHash MAC Guard |
 | **Frequency & N-Gram Cryptanalysis Attack** | 3,000 | **0** | **100.00%** | Dynamic Rolling Permutation Shuffling |
 | **Sybil Ghost Vehicle Injection Attack** | 1,000 | **0** | **100.00%** | Pairwise Ephemeral Seed Authentication |
 
@@ -165,7 +165,7 @@ Active permutation tables in memory are immediately zero-filled (`purge_memory()
 | **Benign Telemetry** | 26,340 | **87.69%** | **99.86%** | **93.38%** | Vectorized Rule + HGBT |
 | **Malicious Misbehavior** | 3,743 | **59.09%** | **1.39%** | **2.71%** | Kinematic Plausibility + Codon Guard |
 | **VeReMi Aggregate** | **30,083** | **73.39%** | **50.63%** | **48.05%** | **Grouped K-Fold HGBT Ensemble** |
-| **DNA-V2X Ingress Encoding** | **5,000** | **100.00%** | **100.00%** | **100.00%** | **Bijective 4-Mer MTD + CRC-32 Guard** |
+| **DNA-V2X Ingress Encoding** | **5,000** | **100.00%** | **100.00%** | **100.00%** | **Bijective 4-Mer MTD + SipHash MAC Guard** |
 
 * **Authentic Dataset Scale:** 150,000 total real records (126,178 benign, 23,822 malicious) sourced from Kamel et al. (Neuro-VeReMi / SecureComm 2018).
 * **Validation Methodology:** GroupKFold evaluation over 34 disjoint vehicular scenario groups (preventing cross-vehicle coordinate memorization and leakage).
@@ -226,7 +226,7 @@ Below is the complete gallery of all 10 publication-grade figures (rendered at 3
 
 * **Explanation:** Figure 5 benchmarks cyber-physical security resilience under active adversarial bombardment across attack vectors (Replay, Tampering, Frequency Probes, and Sybil Ghosts).
   * **Radar Polygon (Left Panel):** The security surface of Plaintext collapses to $0.0\%$, and Static DNA achieves only $31.2\%$. Standard ciphers lack moving target defense against replay without sequence tracking ($68.8\%$). DNA-V2X forms a complete outer perimeter (**100.00% mitigation** across all attack surfaces).
-  * **Breach Comparison (Right Panel):** Demonstrates that DNA-V2X suffered **0 security breaches** across all evaluation trials due to its combination of forward hash ratchets, bijective codon mapping, and CRC-32 guards.
+  * **Breach Comparison (Right Panel):** Demonstrates that DNA-V2X suffered **0 security breaches** across all evaluation trials due to its combination of forward hash ratchets, bijective codon mapping, and SipHash MAC Guards.
 
 ---
 
