@@ -74,7 +74,7 @@ def fig1_architecture_pipeline():
         {
             "x": 0.88, "y": 0.5, "w": 0.15, "h": 0.55,
             "color": "#d35400", "title": "Instant Receiver\nDecode & Purge",
-            "subtitle": "Bijective Inversion\n• High-Throughput Decode\n• CRC-32 Validation\n• Immediate Key Purge\n• Perfect Forward Secrecy"
+            "subtitle": "Bijective Inversion\n• High-Throughput Decode\n• SipHash MAC Validation\n• Immediate Key Purge\n• Perfect Forward Secrecy"
         }
     ]
 
@@ -107,7 +107,7 @@ def fig1_architecture_pipeline():
     ax.set_title("Figure 1: DNA-V2X Ephemeral 4-Mer Genomic Permutation Pipeline Architecture",
                  fontsize=12.5, fontweight="bold", pad=16)
     plt.tight_layout()
-    save_fig_dual("Fig1_DNA_V2X_Architecture_Pipeline.png")
+    save_fig_dual("Fig1_DEPRECATED_DNA_V2X_Architecture_Pipeline.png")
     plt.close()
 
 
